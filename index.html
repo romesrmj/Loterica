@@ -1,15 +1,28 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-  <head>
-    <meta charset="UTF-8" />
-    <title>Cracha</title>
-    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="text/babel" src="cracha.jsx"></script>
-  </body>
+<head>
+  <meta charset="UTF-8" />
+  <title>Cracha</title>
+  <!-- React e ReactDOM -->
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <!-- Babel para transpilar JSX -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    /* Estilos básicos para centralizar o crachá */
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background-color: #f0f0f0;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <!-- Seu arquivo JSX -->
+  <script type="text/babel" src="cracha.jsx"></script>
+</body>
 </html>
-#
