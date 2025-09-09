@@ -9,176 +9,166 @@
   <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
 
-  <!-- Bibliotecas externas -->
+  <!-- html2canvas e jsPDF -->
   <script src="https://unpkg.com/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script src="https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 
-  <!-- Babel para JSX no navegador -->
+  <!-- Babel para JSX -->
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      padding: 20px;
-      background-color: #f0f0f0;
-    }
-    input, button {
-      font-size: 0.9rem;
-    }
+    body { font-family: Arial, sans-serif; padding: 20px; background: #f0f0f0; }
+    label { display: block; margin-bottom: 10px; }
+    input, button { font-size: 0.9rem; margin-top: 2px; }
   </style>
 </head>
 <body>
   <div id="root"></div>
 
-  <!-- Código React adaptado -->
   <script type="text/babel">
+    const { useRef, useState } = React;
 
-// BadgeGenerator adaptado para rodar no navegador sem import/export
-const { useRef, useState, useEffect } = React;
+    function BadgeGenerator() {
+      const previewRef = useRef(null);
 
-function BadgeGenerator() {
-  const previewRef = useRef(null);
-  const [photoURL, setPhotoURL] = useState(null);
-  const [logoURL, setLogoURL] = useState(null);
-  const [logoFederalURL, setLogoFederalURL] = useState(null);
-  const [logoInputURL, setLogoInputURL] = useState("");
-  const [logoFederalInputURL, setLogoFederalInputURL] = useState("");
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [cpf, setCpf] = useState("");
-  const [lotericaName, setLotericaName] = useState("Nome da Lotérica");
+      const [photo, setPhoto] = useState("");
+      const [logo, setLogo] = useState("");
+      const [logoFederal, setLogoFederal] = useState("");
 
-  const DPI = 300;
-  const CSS_DPI = 96;
-  const scale = DPI / CSS_DPI;
+      const [photoURL, setPhotoURL] = useState("");
+      const [logoURL, setLogoURL] = useState("");
+      const [logoFederalURL, setLogoFederalURL] = useState("");
 
-  useEffect(() => {
-    return () => {
-      if (photoURL) URL.revokeObjectURL(photoURL);
-      if (logoURL) URL.revokeObjectURL(logoURL);
-      if (logoFederalURL) URL.revokeObjectURL(logoFederalURL);
-    };
-  }, [photoURL, logoURL, logoFederalURL]);
+      const [firstName, setFirstName] = useState("");
+      const [lastName, setLastName] = useState("");
+      const [cpf, setCpf] = useState("");
+      const [lotericaName, setLotericaName] = useState("Nome da Lotérica");
 
-  function handlePhotoFile(e) {
-    const f = e.target.files?.[0];
-    if (!f) return;
-    setPhotoURL(URL.createObjectURL(f));
-  }
+      const DPI = 300;
+      const CSS_DPI = 96;
+      const scale = DPI / CSS_DPI;
 
-  function handleLogoFile(e) {
-    const f = e.target.files?.[0];
-    if (!f) return;
-    setLogoURL(URL.createObjectURL(f));
-  }
+      // Converte arquivo em base64
+      const toBase64 = file => new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = err => reject(err);
+        reader.readAsDataURL(file);
+      });
 
-  function handleLogoFederalFile(e) {
-    const f = e.target.files?.[0];
-    if (!f) return;
-    setLogoFederalURL(URL.createObjectURL(f));
-  }
+      const handleUpload = async (e, setter) => {
+        const f = e.target.files?.[0];
+        if(!f) return;
+        const b64 = await toBase64(f);
+        setter(b64);
+      };
 
-  async function exportPDF() {
-    if (!previewRef.current) return;
-    const canvas = await html2canvas(previewRef.current, { scale, useCORS: true, allowTaint: false, backgroundColor: "#ffffff" });
-    const imgData = canvas.toDataURL("image/png", 1.0);
-    const pdf = new window.jspdf.jsPDF({ unit: "mm", format: [54, 86], orientation: "portrait" });
-    pdf.addImage(imgData, "PNG", 0, 0, 54, 86);
-    const safeFirst = (firstName || "badge").replace(/[^a-z0-9-_]/gi, "_");
-    const safeLast = (lastName || "badge").replace(/[^a-z0-9-_]/gi, "_");
-    pdf.save(`${safeFirst}_${safeLast}.pdf`);
-  }
+      const exportPDF = async () => {
+        if(!previewRef.current) return;
+        const imgs = previewRef.current.querySelectorAll("img");
+        await Promise.all(Array.from(imgs).map(i => i.complete ? Promise.resolve() : new Promise(res => { i.onload=i.onerror=res; })));
 
-  return (
-    <div className="p-4 max-w-4xl mx-auto">
-      <h2 className="text-xl font-semibold mb-4">Gerador de Crachás Lotérica (Vertical)</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="space-y-4">
-          {/* Inputs */}
-          <label className="block">
-            <span className="text-sm">Logo da Lotérica (upload)</span>
-            <input type="file" accept="image/*" onChange={handleLogoFile} className="mt-2 block" />
-          </label>
-          <label className="block">
-            <span className="text-sm">Logo da Lotérica (URL)</span>
-            <input value={logoInputURL} onChange={e=>setLogoInputURL(e.target.value)} className="mt-1 block w-full rounded border p-2" placeholder="https://..." />
-          </label>
-          <label className="block">
-            <span className="text-sm">Foto (3x4)</span>
-            <input type="file" accept="image/*" onChange={handlePhotoFile} className="mt-2 block" />
-          </label>
-          <label className="block">
-            <span className="text-sm">Nome</span>
-            <input value={firstName} onChange={e=>setFirstName(e.target.value)} className="mt-1 block w-full rounded border p-2" placeholder="Primeiro nome" />
-          </label>
-          <label className="block">
-            <span className="text-sm">Sobrenome</span>
-            <input value={lastName} onChange={e=>setLastName(e.target.value)} className="mt-1 block w-full rounded border p-2" placeholder="Sobrenome" />
-          </label>
-          <label className="block">
-            <span className="text-sm">CPF</span>
-            <input value={cpf} onChange={e=>setCpf(e.target.value)} className="mt-1 block w-full rounded border p-2" placeholder="000.000.000-00" />
-          </label>
-          <label className="block">
-            <span className="text-sm">Logo da Loteria Federal (upload)</span>
-            <input type="file" accept="image/*" onChange={handleLogoFederalFile} className="mt-2 block" />
-          </label>
-          <label className="block">
-            <span className="text-sm">Logo da Loteria Federal (URL)</span>
-            <input value={logoFederalInputURL} onChange={e=>setLogoFederalInputURL(e.target.value)} className="mt-1 block w-full rounded border p-2" placeholder="https://..." />
-          </label>
-          <label className="block">
-            <span className="text-sm">Nome da Lotérica</span>
-            <input value={lotericaName} onChange={e=>setLotericaName(e.target.value)} className="mt-1 block w-full rounded border p-2" placeholder="Nome da Lotérica" />
-          </label>
-          <div className="flex gap-2">
-            <button onClick={exportPDF} className="px-4 py-2 bg-slate-800 text-white rounded">Gerar PDF</button>
-            <button onClick={()=>{
-              setLogoURL(null); setLogoInputURL(""); setLogoFederalURL(null); setLogoFederalInputURL("");
-              setPhotoURL(null); setFirstName(""); setLastName(""); setCpf(""); setLotericaName("Nome da Lotérica");
-            }} className="px-4 py-2 border rounded">Limpar</button>
-          </div>
-        </div>
+        const canvas = await html2canvas(previewRef.current, { scale, useCORS:true, allowTaint:true, backgroundColor:"#fff" });
+        const imgData = canvas.toDataURL("image/png",1.0);
+        const pdf = new window.jspdf.jsPDF({ unit:"mm", format:[54,86], orientation:"portrait" });
+        pdf.addImage(imgData,"PNG",0,0,54,86);
 
-        {/* Preview */}
+        const safeFirst = (firstName||"badge").replace(/[^a-z0-9-_]/gi,"_");
+        const safeLast = (lastName||"badge").replace(/[^a-z0-9-_]/gi,"_");
+        pdf.save(`${safeFirst}_${safeLast}.pdf`);
+      };
+
+      const clearAll = () => {
+        setPhoto(""); setPhotoURL("");
+        setLogo(""); setLogoURL("");
+        setLogoFederal(""); setLogoFederalURL("");
+        setFirstName(""); setLastName(""); setCpf(""); setLotericaName("Nome da Lotérica");
+      };
+
+      return (
         <div>
-          <div className="mb-2 text-sm text-gray-600">Preview (54mm × 86mm)</div>
-          <div className="border p-3 inline-block bg-gray-100">
-            <div ref={previewRef} style={{ width: "54mm", height: "86mm", borderRadius:"3mm", backgroundColor:"#fff", overflow:"hidden", position:"relative", display:"flex", flexDirection:"column", alignItems:"center", paddingTop:"6mm" }}>
-              <div style={{ width:"80%", height:"12mm", marginBottom:"5mm", display:"flex", alignItems:"center", justifyContent:"center" }}>
-                {logoURL ? <img src={logoURL} alt="logo lotérica" style={{maxHeight:"100%", maxWidth:"100%", objectFit:"contain"}} />
-                : logoInputURL ? <img src={logoInputURL} alt="logo lotérica url" style={{maxHeight:"100%", maxWidth:"100%", objectFit:"contain"}} />
-                : <div style={{fontSize:"9pt", color:"#666"}}>Logo Lotérica</div>}
-              </div>
-              <div style={{ width:"22mm", height:"30mm", borderRadius:"2mm", overflow:"hidden", border:"2px solid #0166B3", marginBottom:"5mm" }}>
-                {photoURL ? <img src={photoURL} alt="foto 3x4" style={{width:"100%", height:"100%", objectFit:"cover"}} />
-                : <div style={{width:"100%", height:"100%", display:"flex", alignItems:"center", justifyContent:"center", color:"#666", fontSize:12}}>3 x 4</div>}
-              </div>
-              <div style={{ textAlign:"center", marginBottom:"5mm", color:"#0166B3" }}>
-                <div style={{ fontWeight:700, fontSize:"10pt", textTransform:"uppercase" }}>{(firstName||"Nome")+" "+(lastName||"Sobrenome")}</div>
-                <div style={{ fontSize:"8pt", marginTop:4 }}>{cpf||"000.000.000-00"}</div>
-              </div>
-              <div style={{ width:"70%", height:"10mm", marginBottom:"4mm", display:"flex", alignItems:"center", justifyContent:"center" }}>
-                {logoFederalURL ? <img src={logoFederalURL} alt="logo loteria federal" style={{maxHeight:"100%", maxWidth:"100%", objectFit:"contain"}} />
-                : logoFederalInputURL ? <img src={logoFederalInputURL} alt="logo loteria federal url" style={{maxHeight:"100%", maxWidth:"100%", objectFit:"contain"}} />
-                : <div style={{fontSize:"9pt", color:"#666"}}>Logo Loteria Federal</div>}
-              </div>
-              <div style={{ marginTop:"auto", textAlign:"center", fontSize:"9pt", fontWeight:500, backgroundColor:"#0166B3", color:"#fff", width:"100%", padding:"2mm 0" }}>
-                {lotericaName || "Nome da Lotérica"}
+          <h2>Gerador de Crachás Lotérica (Vertical)</h2>
+          <div style={{ display:"flex", gap:"20px" }}>
+            <div style={{ flex:"1 1 300px" }}>
+              <label>Logo da Lotérica (upload)
+                <input type="file" accept="image/*" onChange={e=>handleUpload(e,setLogo)}/>
+              </label>
+              <label>Logo da Lotérica (URL)
+                <input value={logoURL} onChange={e=>setLogoURL(e.target.value)} placeholder="https://..."/>
+              </label>
+
+              <label>Foto 3x4 (upload)
+                <input type="file" accept="image/*" onChange={e=>handleUpload(e,setPhoto)}/>
+              </label>
+              <label>Foto 3x4 (URL)
+                <input value={photoURL} onChange={e=>setPhotoURL(e.target.value)} placeholder="https://..."/>
+              </label>
+
+              <label>Nome<input value={firstName} onChange={e=>setFirstName(e.target.value)} /></label>
+              <label>Sobrenome<input value={lastName} onChange={e=>setLastName(e.target.value)} /></label>
+              <label>CPF<input value={cpf} onChange={e=>setCpf(e.target.value)} /></label>
+
+              <label>Logo Loteria Federal (upload)
+                <input type="file" accept="image/*" onChange={e=>handleUpload(e,setLogoFederal)}/>
+              </label>
+              <label>Logo Loteria Federal (URL)
+                <input value={logoFederalURL} onChange={e=>setLogoFederalURL(e.target.value)} placeholder="https://..."/>
+              </label>
+
+              <label>Nome da Lotérica<input value={lotericaName} onChange={e=>setLotericaName(e.target.value)} /></label>
+
+              <div style={{ marginTop:"10px" }}>
+                <button onClick={exportPDF}>Gerar PDF</button>
+                <button onClick={clearAll}>Limpar</button>
               </div>
             </div>
+
+            <div style={{ flexShrink:0 }}>
+              <div style={{ border:"1px solid #ccc", padding:"10px", background:"#eee" }}>
+                <div ref={previewRef} style={{ width:"54mm", height:"86mm", borderRadius:"3mm", background:"#fff", display:"flex", flexDirection:"column", alignItems:"center", paddingTop:"6mm" }}>
+
+                  {/* Logo Lotérica */}
+                  <div style={{ width:"80%", height:"12mm", marginBottom:"5mm", display:"flex", alignItems:"center", justifyContent:"center" }}>
+                    {logo ? <img src={logo} alt="logo" style={{maxWidth:"100%", maxHeight:"100%", objectFit:"contain"}}/>
+                    : logoURL ? <img src={logoURL} alt="logo url" style={{maxWidth:"100%", maxHeight:"100%", objectFit:"contain"}}/>
+                    : <div style={{ fontSize:"9pt", color:"#666"}}>Logo Lotérica</div>}
+                  </div>
+
+                  {/* Foto 3x4 */}
+                  <div style={{ width:"22mm", height:"30mm", border:"2px solid #0166B3", marginBottom:"5mm", borderRadius:"2mm", overflow:"hidden" }}>
+                    {photo ? <img src={photo} alt="3x4" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+                    : photoURL ? <img src={photoURL} alt="3x4 url" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+                    : <div style={{width:"100%",height:"100%",display:"flex",alignItems:"center",justifyContent:"center",color:"#666"}}>3x4</div>}
+                  </div>
+
+                  {/* Nome + CPF */}
+                  <div style={{ textAlign:"center", marginBottom:"5mm", color:"#0166B3" }}>
+                    <div style={{ fontWeight:700 }}>{(firstName||"Nome")+" "+(lastName||"Sobrenome")}</div>
+                    <div>{cpf||"000.000.000-00"}</div>
+                  </div>
+
+                  {/* Logo Federal */}
+                  <div style={{ width:"70%", height:"10mm", display:"flex", alignItems:"center", justifyContent:"center", marginBottom:"4mm" }}>
+                    {logoFederal ? <img src={logoFederal} alt="federal" style={{maxWidth:"100%", maxHeight:"100%", objectFit:"contain"}}/>
+                    : logoFederalURL ? <img src={logoFederalURL} alt="federal url" style={{maxWidth:"100%", maxHeight:"100%", objectFit:"contain"}}/>
+                    : <div style={{ fontSize:"9pt", color:"#666"}}>Logo Loteria Federal</div>}
+                  </div>
+
+                  {/* Footer */}
+                  <div style={{ marginTop:"auto", textAlign:"center", fontWeight:500, backgroundColor:"#0166B3", color:"#fff", width:"100%", padding:"2mm 0" }}>
+                    {lotericaName}
+                  </div>
+
+                </div>
+              </div>
+              <div style={{ fontSize:"10px", marginTop:"2px" }}>Modelo vertical — 54 × 86 mm</div>
+            </div>
           </div>
-          <div className="text-xs text-gray-500 mt-2">Modelo oficial vertical — 54 × 86 mm, raio 3 mm.</div>
         </div>
+      );
+    }
 
-      </div>
-    </div>
-  );
-}
-
-// Renderiza
-ReactDOM.render(<BadgeGenerator />, document.getElementById('root'));
-
+    ReactDOM.render(<BadgeGenerator />, document.getElementById("root"));
   </script>
 </body>
 </html>
